@@ -13,9 +13,12 @@ bot_token = open('token.txt', 'r').read()
 # creating the bot
 bot = commands.Bot(intents=nextcord.Intents.all())
 
+#  loading the json file
+json_file = open("setting.json", "r")
+bot_settings = loads(json_file.read())
+
 
 #  some functions here
-
 
 def is_player_in_a_team(player_name):
     """the function check if the player is already in a team"""
@@ -118,7 +121,6 @@ def create_leaderboard_table(data):
         current_p1 = top[team]['p1']
         current_p2 = top[team]['p2']
 
-
         #  now format the default line
         line = line_template.format(
             current_name, " " * (name_objective - len(str(current_name))),
@@ -155,13 +157,15 @@ async def ping(interaction: nextcord.Interaction):
 
 @bot.slash_command(name="creer-une-equipe", description="cette commande crée une équipe")
 async def create_team(interaction: nextcord.Interaction, nom_d_equip: str, équipier: nextcord.User):
+
     #  in first check if you can create a team
     inscription_status = loads(open("inscription.json", 'r').read())["inscription"]
     if not inscription_status:
         await interaction.send('Les inscriptions sont fermées, vous ne pouvez pas créer d\'équipe')
         return
     # in first check if settings are correct
-    if interaction.user.name == équipier.name or équipier.id == 1129065537444515872:  # id du bot
+    if interaction.user.name == équipier.name or équipier.bot:
+        # if the user try to play with a bot or select himself as teammate
         await interaction.send('Tu ne peux pas jouer seul !')
         return
     #  in second check if the two players can join a team
@@ -175,6 +179,11 @@ async def create_team(interaction: nextcord.Interaction, nom_d_equip: str, équi
         #  creating the team, if the players can join
         result = db_create_team(team_name=nom_d_equip, p1=interaction.user.name, p2=équipier)
         if result:
+            #  get the role and add it to the two members
+            team_role = interaction.guild.get_role(bot_settings["is_in_team_role_id"])
+            await interaction.user.add_roles(team_role)
+            await équipier.add_roles(team_role)
+
             await interaction.send(f'Vous êtes désormais dans l\'équipe {nom_d_equip} !')
         else:
             await interaction.send('Umm, il semble qu\' il y ai eu une erreur pendant la création de votre équipe !')
@@ -199,7 +208,7 @@ async def team_info(interaction: nextcord.Interaction):
 async def add_points(interaction: nextcord.Interaction, equipe_de: nextcord.User, jeu: str, points: int):
     have_the_role = False
     for role in interaction.user.roles:  # check if the user have the role
-        if role.name == 'Organisateur':
+        if role.name == bot_settings['name_authorised_role']:
             have_the_role = True
 
     if have_the_role:
@@ -223,7 +232,7 @@ async def set_inscription(interaction: nextcord.Interaction, inscription: bool =
 )):
     has_role = False
     for role in interaction.user.roles:
-        if role.name == "Organisateur":
+        if role.name == bot_settings['name_authorised_role']:
             has_role = True
             break
     if has_role:
