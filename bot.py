@@ -156,7 +156,7 @@ async def ping(interaction: nextcord.Interaction):
 
 
 @bot.slash_command(name="creer-une-equipe", description="cette commande crée une équipe")
-async def create_team(interaction: nextcord.Interaction, nom_d_equip: str, équipier: nextcord.User):
+async def create_team(interaction: nextcord.Interaction, nom_d_equip: str, équipier: nextcord.User): # ici
 
     #  in first check if you can create a team
     inscription_status = loads(open("inscription.json", 'r').read())["inscription"]
